@@ -1,11 +1,13 @@
+'use client';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createClient } from '../../lib/supabase/server';
+import { useEffect, useState } from 'react';
+import { createClient } from '../../../lib/supabase/client';
 
-export default async function BusinessTeamPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-  const { data: members } = await supabase.from('business_members').select('id,member_email,role,status,created_at').eq('owner_id', user.id).order('created_at', { ascending: false });
-  return <main className="page"><div className="topbar"><Link className="brand" href="/business">AI BUSINESS</Link><Link className="textlink" href="/business">Business hub</Link></div><section className="pagehero"><div className="eyebrow">TEAM</div><h1>People working with your business</h1><p>Keep team access explicit. Invites and role changes can be added without exposing private owner data.</p></section><section className="listgrid">{(members ?? []).map((member) => <article key={member.id}><span>{member.role} · {member.status}</span><h2>{member.member_email}</h2><p>Added {new Date(member.created_at).toLocaleDateString()}</p></article>)}{!(members ?? []).length && <article><span>TEAM READY</span><h2>No team members yet</h2><p>Invite a VA or collaborator when you are ready to delegate work.</p></article>}</section></main>;
+type Member={id:string;member_email:string;role:string;status:string;created_at:string};
+export default function BusinessTeamPage(){
+  const [members,setMembers]=useState<Member[]>([]);const [email,setEmail]=useState('');const [role,setRole]=useState('va');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
+  async function load(){const s=createClient();const {data:{user}}=await s.auth.getUser();if(!user)return;const {data,error}=await s.from('business_members').select('id,member_email,role,status,created_at').eq('owner_id',user.id).order('created_at',{ascending:false});if(error)setMessage(error.message);else setMembers(data??[])}
+  useEffect(()=>{void load()},[]);
+  async function invite(e:React.FormEvent){e.preventDefault();if(!email.trim())return;setBusy(true);setMessage('');const s=createClient();const {data:{user}}=await s.auth.getUser();if(!user){setMessage('Please log in.');setBusy(false);return;}const {error}=await s.from('business_members').insert({owner_id:user.id,member_email:email.trim().toLowerCase(),role,status:'invited'});if(error)setMessage(error.message);else{setEmail('');setMessage('Invitation recorded. Email delivery can be connected later.');await load()}setBusy(false)}
+  return <main className="page"><div className="topbar"><Link className="brand" href="/business">AI BUSINESS</Link><Link className="textlink" href="/business">Business hub</Link></div><section className="pagehero"><div className="eyebrow">TEAM</div><h1>People working with your business</h1><p>Invite VAs, managers, or viewers and keep access explicit.</p></section><section className="formpanel"><h2>Invite a team member</h2><label>Email<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com" required /></label><label>Role<select value={role} onChange={e=>setRole(e.target.value)}><option value="va">VA</option><option value="manager">Manager</option><option value="viewer">Viewer</option></select></label><button className="button" onClick={invite} disabled={busy}>{busy?'Adding…':'Add invitation'}</button>{message&&<div className="notice">{message}</div>}</section><section className="listgrid" style={{marginTop:15}}>{members.map(member=><article key={member.id}><span>{member.role} · {member.status}</span><h2>{member.member_email}</h2><p>Added {new Date(member.created_at).toLocaleDateString()}</p></article>)}{!members.length&&<article><span>TEAM READY</span><h2>No team members yet</h2><p>Add your first collaborator above.</p></article>}</section></main>;
 }
