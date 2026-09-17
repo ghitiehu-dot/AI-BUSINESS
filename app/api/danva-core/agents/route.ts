@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../../../lib/supabase/server";
-import { callDanvaCore } from "../../../../../lib/danva-core";
+import { createClient } from "@/lib/supabase/server";
+import { callDanvaCore } from "@/lib/danva-core";
 
 async function getUser() {
   const supabase = await createClient();
