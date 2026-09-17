@@ -1,4 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-export const metadata: Metadata={title:"AI BUSINESS",description:"A guided workspace for aspiring virtual assistants."};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>}
+import WorkspaceShell from "../components/workspace-shell";
+
+export const metadata: Metadata = {
+  title: "AI BUSINESS",
+  description: "A guided business workspace for aspiring virtual assistants and business owners.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return <html lang="en"><body><WorkspaceShell>{children}</WorkspaceShell></body></html>;
+}
