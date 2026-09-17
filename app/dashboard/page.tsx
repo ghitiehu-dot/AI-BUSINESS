@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
-import { createClient } from "../lib/supabase/server";
+import { createClient } from "../../lib/supabase/server";
 import Link from "next/link";
+
+type BusinessTaskSummary = { status: string };
 
 export default async function Dashboard(){
   const supabase=await createClient();
@@ -9,7 +11,8 @@ export default async function Dashboard(){
   const {data:profile}=await supabase.from('profiles').select('full_name,account_type').eq('id',user.id).maybeSingle();
   const owner=profile?.account_type==='business' || profile?.account_type==='team';
   const {data:tasks}=owner ? await supabase.from('business_tasks').select('id,status').eq('owner_id',user.id) : {data:null};
-  const open=(tasks??[]).filter(t=>t.status!=='done').length;
+  const taskRows = (tasks ?? []) as BusinessTaskSummary[];
+  const open=taskRows.filter(t=>t.status!=='done').length;
   return <main className="app"><aside><Link className="brand" href="/">AI BUSINESS</Link><nav>
     <Link className="active" href="/dashboard">Overview</Link>
     {owner ? <><Link href="/business">Business Operations</Link><Link href="/business/tasks">Tasks</Link><Link href="/business/workflows">Workflows</Link><Link href="/business/team">Team</Link></> : <><Link href="/guide">VA Guide</Link><Link href="/skills">Skills</Link><Link href="/workflows">Workflows</Link><Link href="/tasks">Practice Tasks</Link><Link href="/templates">Templates</Link><Link href="/sops">SOPs</Link><Link href="/portfolio">Portfolio</Link></>}
