@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '../../../lib/supabase/server';
+import { createClient } from '../../../../lib/supabase/server';
 
 const schema = z.object({ account_type: z.enum(['va', 'business', 'team']) });
 
