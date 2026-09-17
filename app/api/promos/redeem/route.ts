@@ -1,0 +1,3 @@
+import { createClient } from "../../../../lib/supabase/server";
+import { NextResponse } from "next/server";
+export async function POST(req:Request){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const body=await req.json().catch(()=>null);const code=typeof body?.code==='string'?body.code.trim():'';if(!code)return NextResponse.json({error:'Promo code required'},{status:400});const {data,error}=await s.rpc('redeem_promo',{p_code:code});if(error)return NextResponse.json({error:error.message},{status:400});return NextResponse.json(data)}
