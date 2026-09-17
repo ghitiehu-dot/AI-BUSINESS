@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const primary = [["Overview", "/dashboard"], ["VA Guide", "/guide"], ["Skills", "/skills"], ["Tasks", "/tasks"], ["Workflows", "/workflows"], ["Practice", "/practice"], ["Templates", "/templates"], ["SOPs", "/sops"], ["AI Guide", "/ai-guide"], ["Portfolio", "/portfolio"]] as const;
+const primary = [["Overview", "/dashboard"], ["VA Guide", "/guide"], ["Skills", "/skills"], ["Tasks", "/tasks"], ["Workflows", "/workflows"], ["Practice", "/practice"], ["Templates", "/templates"], ["SOPs", "/sops"], ["Resources", "/resources"], ["AI Guide", "/ai-guide"], ["Portfolio", "/portfolio"]] as const;
 const business = [["Business", "/business"], ["Business Tasks", "/business/tasks"], ["Business Workflows", "/business/workflows"], ["Team", "/business/team"]] as const;
 
 function isPublic(pathname: string) { return pathname === "/" || pathname === "/login" || pathname.startsWith("/create-account") || pathname.startsWith("/onboarding"); }
