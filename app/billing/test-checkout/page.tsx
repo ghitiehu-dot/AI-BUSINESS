@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createClient } from '../../lib/supabase/client';
+import { createClient } from '../../../lib/supabase/client';
 
 export default function TestCheckout(){
   const params=useSearchParams();const router=useRouter();const session=params.get('session');const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');
