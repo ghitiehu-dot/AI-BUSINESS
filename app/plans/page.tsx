@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
+import { createClient } from '../../lib/supabase/client';
 
 type Plan={slug:string;name:string;monthly_price:number;monthly_credits:number};
 const positioning:Record<string,{title:string;description:string;points:string[]}>={
@@ -15,5 +16,3 @@ export default function Plans(){
   async function choose(slug:string){if(slug==='free'||slug===active)return;setBusy(slug);setMessage('');const r=await fetch('/api/billing/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plan_slug:slug})});const j=await r.json().catch(()=>({}));if(r.ok&&j.checkout_url){window.location.href=j.checkout_url}else setMessage(j.error||'Checkout could not be started.');setBusy(null)}
   return <main className="page"><header className="topbar"><Link className="brand" href="/">AI BUSINESS</Link><Link href="/dashboard">Dashboard</Link></header><section className="pagehero"><div className="eyebrow">PLANS & USAGE</div><h1>Choose the level of support that fits your goals.</h1><p>Start with the essentials. Upgrade when you need more practice, AI guidance, and operating capacity. Current access: <strong>{active}</strong> · {remaining} credits remaining.</p></section><section className="plans">{plans.map(x=>{const copy=positioning[x.slug]??positioning.free;return <article key={x.slug} className={x.slug==='starter'?'featured-plan':''}><span>{x.name}</span><strong>₱{x.monthly_price}<small>/month</small></strong><h2>{copy.title}</h2><p>{copy.description}</p><ul>{copy.points.map(point=><li key={point}><Check size={15}/>{point}</li>)}</ul><button className={x.slug==='starter'?'button':''} onClick={()=>choose(x.slug)} disabled={busy!==null}>{x.slug===active?'Current plan':busy===x.slug?'Opening secure checkout…':x.slug==='free'?'Start free':'Choose '+x.name+' '}<ArrowRight size={15}/></button></article>})}</section>{message&&<div className="notice error">{message}</div>}<section className="usagepanel"><h2>Your usage, clearly tracked</h2><p>{remaining} credits remain in the current billing period. Usage is enforced server-side so your allowance stays predictable.</p></section><section className="usagepanel"><h2>Have an access code?</h2><p>Owner-issued promo codes can grant credits or time-limited plan access.</p><Link className="button" href="/promos">Redeem a promo code <ArrowRight size={16}/></Link></section></main>;
 }
-
-function createClient(){return require('../../lib/supabase/client').createClient()}
