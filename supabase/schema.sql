@@ -10,6 +10,8 @@ create table if not exists public.promo_redemptions (id uuid primary key default
 create table if not exists public.business_workspaces (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, name text not null, description text, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 create table if not exists public.business_tasks (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, workspace_id uuid references public.business_workspaces(id) on delete cascade, title text not null, description text, status text not null default 'todo' check(status in ('todo','in_progress','review','done')), priority text not null default 'normal' check(priority in ('low','normal','high','urgent')), assigned_to uuid references auth.users(id) on delete set null, due_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 create table if not exists public.business_team_members (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, workspace_id uuid references public.business_workspaces(id) on delete cascade, member_user_id uuid references auth.users(id) on delete cascade, email text not null, role text not null default 'member' check(role in ('owner','manager','member','va')), status text not null default 'invited' check(status in ('invited','active','removed')), created_at timestamptz not null default now(), unique(workspace_id,email));
+create table if not exists public.learning_progress (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, item_key text not null, status text not null default 'not_started' check(status in ('not_started','in_progress','completed')), score integer check(score between 0 and 100), updated_at timestamptz not null default now(), unique(user_id,item_key));
+create table if not exists public.portfolio_items (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, title text not null, description text not null default '', skills text[] not null default '{}', created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 
 insert into public.plans(slug,name,monthly_price,monthly_credits) values ('free','Free',0,100),('starter','Starter',299,1000),('pro','Pro',699,3000) on conflict(slug) do update set name=excluded.name,monthly_price=excluded.monthly_price,monthly_credits=excluded.monthly_credits;
 
@@ -23,6 +25,8 @@ alter table public.promo_redemptions enable row level security;
 alter table public.business_workspaces enable row level security;
 alter table public.business_tasks enable row level security;
 alter table public.business_team_members enable row level security;
+alter table public.learning_progress enable row level security;
+alter table public.portfolio_items enable row level security;
 
 drop policy if exists "profile own" on public.profiles;
 create policy "profile own" on public.profiles for select to authenticated using ((select auth.uid())=id);
@@ -45,11 +49,17 @@ drop policy if exists "business task owner access" on public.business_tasks;
 create policy "business task owner access" on public.business_tasks for all to authenticated using ((select auth.uid())=owner_id) with check ((select auth.uid())=owner_id);
 drop policy if exists "business team owner access" on public.business_team_members;
 create policy "business team owner access" on public.business_team_members for all to authenticated using ((select auth.uid())=owner_id) with check ((select auth.uid())=owner_id);
+drop policy if exists "learning own" on public.learning_progress;
+create policy "learning own" on public.learning_progress for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
+drop policy if exists "portfolio own" on public.portfolio_items;
+create policy "portfolio own" on public.portfolio_items for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
 
 create index if not exists business_tasks_owner_created_idx on public.business_tasks(owner_id,created_at desc);
 create index if not exists business_tasks_workspace_idx on public.business_tasks(workspace_id);
 create index if not exists business_team_owner_idx on public.business_team_members(owner_id);
 create index if not exists credit_grants_user_period_idx on public.credit_grants(user_id,valid_from,valid_until);
+create index if not exists learning_progress_user_idx on public.learning_progress(user_id,updated_at desc);
+create index if not exists portfolio_items_user_idx on public.portfolio_items(user_id,created_at desc);
 
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$ begin insert into public.profiles(id,full_name) values(new.id,new.raw_user_meta_data->>'full_name') on conflict(id) do nothing; return new; end; $$;
 revoke all on function public.handle_new_user() from public;
