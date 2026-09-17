@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '../lib/supabase/server';
+import { createClient } from '../../lib/supabase/server';
+
+type BusinessTaskSummary = { status: string };
 
 export default async function BusinessPage() {
   const supabase = await createClient();
@@ -8,8 +10,9 @@ export default async function BusinessPage() {
   if (!user) redirect('/login');
 
   const { data: tasks } = await supabase.from('business_tasks').select('id,title,status,priority,due_at').eq('owner_id', user.id).order('created_at', { ascending: false }).limit(20);
-  const open = (tasks ?? []).filter((t) => t.status !== 'done').length;
-  const done = (tasks ?? []).filter((t) => t.status === 'done').length;
+  const taskRows = (tasks ?? []) as BusinessTaskSummary[];
+  const open = taskRows.filter((t) => t.status !== 'done').length;
+  const done = taskRows.filter((t) => t.status === 'done').length;
 
   return <main className="page"><div className="topbar"><Link className="brand" href="/dashboard">AI BUSINESS</Link><Link className="textlink" href="/dashboard">Back to dashboard</Link></div>
     <section className="pagehero"><div className="eyebrow">BUSINESS OPERATIONS</div><h1>Run your business with the same workspace your team can use.</h1><p>Plan work, document processes, delegate tasks, and keep approvals and activity in one place.</p></section>
