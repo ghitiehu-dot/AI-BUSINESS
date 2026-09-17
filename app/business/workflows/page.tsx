@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '../../lib/supabase/server';
+import { createClient } from '../../../lib/supabase/server';
 
 const workflows = [
   ['Client onboarding', 'Collect the brief, files, access, expectations, and first deliverables.'],
