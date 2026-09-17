@@ -1,11 +1,15 @@
 create extension if not exists pgcrypto;
 
-create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text, role text not null default 'user' check (role in ('user','admin')), created_at timestamptz not null default now());
+create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text, role text not null default 'user' check (role in ('user','admin')), account_type text not null default 'va' check (account_type in ('va','business','team')), created_at timestamptz not null default now());
 create table if not exists public.plans (id uuid primary key default gen_random_uuid(), slug text unique not null, name text not null, monthly_price numeric(12,2) not null default 0, monthly_credits integer not null default 0, active boolean not null default true, created_at timestamptz not null default now());
 create table if not exists public.subscriptions (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, plan_id uuid not null references public.plans(id), status text not null default 'active' check(status in ('active','trialing','past_due','canceled','expired')), starts_at timestamptz not null default now(), ends_at timestamptz, created_at timestamptz not null default now());
 create table if not exists public.usage_events (id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users(id) on delete cascade, event_type text not null, units integer not null default 1 check (units>0), metadata jsonb not null default '{}', created_at timestamptz not null default now());
 create table if not exists public.promo_codes (id uuid primary key default gen_random_uuid(), code text unique not null, plan_id uuid references public.plans(id), credits integer not null default 0 check(credits>=0), duration_days integer not null default 30 check(duration_days>0), max_redemptions integer, redeemed_count integer not null default 0 check(redeemed_count>=0), starts_at timestamptz not null default now(), expires_at timestamptz, active boolean not null default true, created_at timestamptz not null default now());
 create table if not exists public.promo_redemptions (id uuid primary key default gen_random_uuid(), promo_id uuid not null references public.promo_codes(id) on delete cascade, user_id uuid not null references auth.users(id) on delete cascade, redeemed_at timestamptz not null default now(), unique(promo_id,user_id));
+create table if not exists public.business_tasks (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, assignee_id uuid references auth.users(id) on delete set null, title text not null, description text, status text not null default 'open' check(status in ('open','in_progress','review','done','blocked')), priority text not null default 'normal' check(priority in ('low','normal','high','urgent')), due_at timestamptz, created_at timestamptz not null default now());
+create table if not exists public.business_members (id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, member_email text not null, role text not null default 'va' check(role in ('va','manager','viewer')), status text not null default 'invited' check(status in ('invited','active','revoked')), created_at timestamptz not null default now());
+
+alter table public.profiles add column if not exists account_type text not null default 'va';
 
 insert into public.plans(slug,name,monthly_price,monthly_credits) values ('free','Free',0,100),('starter','Starter',299,1000),('pro','Pro',699,3000) on conflict(slug) do update set name=excluded.name, monthly_price=excluded.monthly_price, monthly_credits=excluded.monthly_credits;
 
@@ -15,6 +19,8 @@ alter table public.subscriptions enable row level security;
 alter table public.usage_events enable row level security;
 alter table public.promo_codes enable row level security;
 alter table public.promo_redemptions enable row level security;
+alter table public.business_tasks enable row level security;
+alter table public.business_members enable row level security;
 
 drop policy if exists "profile own" on public.profiles;
 create policy "profile own" on public.profiles for select using (id=auth.uid());
@@ -28,6 +34,9 @@ create policy "usage own" on public.usage_events for select using (user_id=auth.
 drop policy if exists "usage insert own" on public.usage_events;
 create policy "usage insert own" on public.usage_events for insert with check (user_id=auth.uid());
 create policy "redemption own" on public.promo_redemptions for select using (user_id=auth.uid());
+create policy "business task owner" on public.business_tasks for all using (owner_id=auth.uid()) with check (owner_id=auth.uid());
+create policy "business task assignee read" on public.business_tasks for select using (assignee_id=auth.uid());
+create policy "business member owner" on public.business_members for all using (owner_id=auth.uid()) with check (owner_id=auth.uid());
 
 create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
 begin
